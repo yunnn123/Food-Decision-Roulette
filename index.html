@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食物的決策輪盤 —— 專為選擇困難症與荷包乾癟者設計</title>
+    <!-- 引入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts 圓潤字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
+    <!-- 引入 Phosphor Icons 圖示庫 -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --candy-blue: #BDE0FE;
+            --candy-pink: #FFC8DD;
+            --candy-purple: #CDB4DB;
+            --candy-cream: #FFF9F5;
+            --candy-yellow: #FDFFB6;
+            --candy-green: #CAFFBF;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #FFF9F5 0%, #fce4ec 50%, #e3f2fd 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #4A3B52;
+            user-select: none;
+        }
+
+        .candy-box {
+            background-color: var(--candy-cream);
+            border: 4px solid #4A3B52;
+            border-radius: 28px;
+            box-shadow: 0 8px 0 #4A3B52;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .candy-btn {
+            border: 3px solid #4A3B52;
+            border-radius: 9999px;
+            box-shadow: 0 5px 0 #4A3B52;
+            transition: all 0.15s ease;
+        }
+        .candy-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #4A3B52;
+        }
+        .candy-btn:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #4A3B52;
+        }
+        .candy-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(40%);
+        }
+
+        .mode-card {
+            border: 4px solid #4A3B52;
+            border-radius: 24px;
+            box-shadow: 0 6px 0 #4A3B52;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+        }
+        .mode-card:hover:not(.disabled-card) {
+            transform: scale(1.06);
+            box-shadow: 0 12px 0 #4A3B52;
+        }
+        .mode-card.active-mode {
+            outline: 5px solid #FF6B8B;
+            outline-offset: 3px;
+        }
+
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            border: 4px solid #4A3B52;
+            box-shadow: 0 6px 0 #4A3B52;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+
+        #wheel-pointer-container {
+            transform-origin: 50% 16px;
+            z-index: 30;
+        }
+
+        @keyframes violent-shake {
+            0% { transform: translateX(0) rotate(0deg); }
+            10% { transform: translateX(-8px) rotate(-18deg); }
+            20% { transform: translateX(8px) rotate(18deg); }
+            30% { transform: translateX(-10px) rotate(-25deg); }
+            40% { transform: translateX(10px) rotate(25deg); }
+            50% { transform: translateX(-12px) rotate(-32deg); }
+            60% { transform: translateX(12px) rotate(32deg); }
+            70% { transform: translateX(-15px) rotate(-38deg); }
+            80% { transform: translateX(15px) rotate(38deg); }
+            90% { transform: translateX(-8px) rotate(-25deg); }
+            100% { transform: translateX(0) rotate(0deg); }
+        }
+
+        @keyframes snap-and-dangle {
+            0% { transform: rotate(0deg) translateY(0); }
+            25% { transform: rotate(68deg) translateY(18px) translateX(8px); }
+            50% { transform: rotate(35deg) translateY(16px) translateX(4px); }
+            75% { transform: rotate(55deg) translateY(18px) translateX(6px); }
+            100% { transform: rotate(46deg) translateY(17px) translateX(5px); }
+        }
+
+        .pointer-shaking {
+            animation: violent-shake 0.85s ease-in-out forwards;
+        }
+
+        .pointer-snapped {
+            animation: snap-and-dangle 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+        }
+
+        @keyframes card-throw-away {
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+            30% { transform: translate(-15px, -25px) rotate(-18deg) scale(0.9); opacity: 1; }
+            100% { transform: translate(var(--tx, 260px), var(--ty, 420px)) rotate(var(--rot, 540deg)) scale(0.15); opacity: 0; }
+        }
+
+        @keyframes giant-hand-sweep {
+            0% { transform: translateX(-140%) rotate(-25deg) scale(0.8); opacity: 0; }
+            25% { transform: translateX(-10%) rotate(10deg) scale(1.1); opacity: 1; }
+            65% { transform: translateX(60%) rotate(35deg) scale(1.15); opacity: 1; }
+            100% { transform: translateX(160%) rotate(55deg) scale(0.9); opacity: 0; }
+        }
+
+        .card-thrown {
+            animation: card-throw-away 0.85s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+            pointer-events: none;
+        }
+
+        .hand-sweeping {
+            animation: giant-hand-sweep 0.95s ease-in-out forwards;
+        }
+
+        .grayscale-lock {
+            filter: grayscale(100%) contrast(125%) brightness(85%);
+            pointer-events: none !important;
+            transition: filter 0.6s ease;
+        }
+
+        @keyframes alarm-slam {
+            0% { transform: scale(0.2) rotate(-10deg); opacity: 0; }
+            60% { transform: scale(1.08) rotate(3deg); opacity: 1; }
+            80% { transform: scale(0.95) rotate(-2deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .alarm-modal-enter {
+            animation: alarm-slam 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFF9F5;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CDB4DB;
+            border-radius: 10px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 14px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #A2D2FF 0%, #FFAFCC 50%, #FF6B8B 100%);
+            border: 3px solid #4A3B52;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 28px;
+            width: 28px;
+            border-radius: 50%;
+            background: #FFF9F5;
+            border: 4px solid #4A3B52;
+            margin-top: -10px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #4A3B52;
+        }
+    </style>
+</head>
+<body class="relative pb-16">
+
+    <!-- 慶祝特效彩帶 Canvas -->
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 hidden"></canvas>
+
+    <div id="main-app-wrapper" class="max-w-6xl mx-auto px-4 pt-6">
+        
+        <!-- Header 頂部導覽 -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-14 h-14 rounded-2xl bg-[#FFAFCC] border-4 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center justify-center text-3xl">
+                    🎡
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-[#4A3B52]">
+                        食物的決策輪盤
+                    </h1>
+                    <p class="text-sm font-bold text-[#7A6587]">
+                        ✨ 專為選擇困難症與荷包乾癟者設計的無情決策器 ✨
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="willful-badge" class="px-4 py-2 rounded-2xl bg-[#CDB4DB] border-3 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center gap-2 font-bold text-sm transition-all duration-300">
+                    <span>😤 任性嫌棄次數：</span>
+                    <span id="retry-count-display" class="px-2.5 py-0.5 bg-white rounded-full border-2 border-[#4A3B52] text-[#E63946] font-extrabold">0 / 2</span>
+                </div>
+                <button id="toggle-menu-btn" class="candy-btn bg-[#FDFFB6] px-4 py-2 font-bold text-sm flex items-center gap-1.5">
+                    <i class="ph-bold ph-fork-knife text-lg"></i>
+                    <span>自訂菜單</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主操作區網格 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- 左側步驟區：飢餓度滑桿、預算輸入與模式切換 -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <section class="candy-box p-6 relative overflow-hidden">
+                    <div class="inline-block px-3 py-1 rounded-full bg-[#A2D2FF] border-2 border-[#4A3B52] font-extrabold text-xs mb-3">
+                        STEP 1 • 誠實面對自己
+                    </div>
+                    <h2 class="text-xl font-extrabold mb-5 flex items-center gap-2">
+                        <span>📋 輸入你的飢餓與財力</span>
+                    </h2>
+
+                    <!-- 飢餓度滑桿 -->
+                    <div class="mb-6 bg-[#FFF0F6] p-4 rounded-2xl border-3 border-[#4A3B52]">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="hunger-slider" class="font-extrabold text-sm flex items-center gap-1">
+                                <span>肚子餓扁指數：</span>
+                            </label>
+                            <span id="hunger-value-badge" class="px-3 py-0.5 rounded-full bg-[#FFAFCC] border-2 border-[#4A3B52] font-extrabold text-sm">
+                                5 分
+                            </span>
+                        </div>
+                        <input id="hunger-slider" type="range" min="1" max="10" value="5" class="w-full my-2">
+                        <p id="hunger-desc" class="text-xs font-bold text-[#6D597A] mt-1 text-center bg-white py-1.5 px-3 rounded-xl border-2 border-[#4A3B52]">
+                            😐 普通餓，該吃正餐補充體力囉！
+                        </p>
+                    </div>
+
+                    <!-- 錢包餘額輸入框 -->
+                    <div class="bg-[#E8F4FF] p-4 rounded-2xl border-3 border-[#4A3B52]">
+                        <label for="wallet-input" class="block font-extrabold text-sm mb-2">
+                            💰 你目前的錢包餘額？ (NT$)
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="absolute left-4 font-extrabold text-lg text-[#4A3B52]">NT$</span>
+                            <input 
+                                id="wallet-input" 
+                                type="number" 
+                                min="0" 
+                                step="1"
+                                placeholder="請輸入真實餘額 (例: 100)" 
+                                class="w-full pl-16 pr-4 py-3 rounded-xl border-3 border-[#4A3B52] bg-white font-extrabold text-lg focus:outline-none focus:ring-4 focus:ring-[#A2D2FF]"
+                            >
+                        </div>
+                        <div id="wallet-hint" class="mt-2.5 flex items-center gap-1.5 text-xs font-extrabold text-[#E63946]">
+                            <i class="ph-fill ph-warning-circle text-base"></i>
+                            <span>⚠️ 請先輸入餘額，才能解鎖命運決策模式喔！</span>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-1.5 items-center">
+                            <span class="text-xs font-bold text-[#6D597A]">快速填入：</span>
+                            <button type="button" data-quick-money="40" class="quick-money-btn text-xs bg-white hover:bg-[#FFC8DD] px-2.5 py-1 rounded-lg border-2 border-[#4A3B52] font-bold transition">$40 月底吃土</button>
+                            <button type="button" data-quick-money="120" class="quick-money-btn text-xs bg-white hover:bg-[#BDE0FE] px-2.5 py-1 rounded-lg border-2 border-[#4A3B52] font-bold transition">$120 小資日常</button>
+                            <button type="button" data-quick-money="500" class="quick-money-btn text-xs bg-white hover:bg-[#CAFFBF] px-2.5 py-1 rounded-lg border-2 border-[#4A3B52] font-bold transition">$500 偶爾奢侈</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- STEP 2 模式選擇 -->
+                <section id="mode-selection-section" class="candy-box p-6 relative transition-all">
+                    <div id="mode-lock-overlay" class="absolute inset-0 bg-[#FFF9F5]/85 backdrop-blur-[2px] z-20 rounded-[24px] flex flex-col items-center justify-center p-6 text-center">
+                        <div class="w-16 h-16 rounded-full bg-[#FFAFCC] border-4 border-[#4A3B52] flex items-center justify-center text-3xl mb-2 animate-bounce">
+                            🔒
+                        </div>
+                        <p class="font-extrabold text-lg text-[#4A3B52]">⚠️ 請先輸入餘額</p>
+                        <p class="text-xs font-bold text-[#6D597A] mt-1">在上方輸入你的錢包餘額後，即可選擇「輪盤」或「翻牌」模式！</p>
+                    </div>
+
+                    <div class="inline-block px-3 py-1 rounded-full bg-[#FFAFCC] border-2 border-[#4A3B52] font-extrabold text-xs mb-3">
+                        STEP 2 • 選擇命運玩法
+                    </div>
+                    <h2 class="text-xl font-extrabold mb-4">
+                        ✨ 你想用哪種方式決定今天吃什麼？
+                    </h2>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- 輪盤模式按鈕 -->
+                        <button id="select-wheel-btn" type="button" class="mode-card active-mode bg-[#BDE0FE] p-4 flex flex-col items-center justify-center text-center cursor-pointer group">
+                            <div class="w-24 h-24 mb-2 flex items-center justify-center">
+                                <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow">
+                                    <circle cx="60" cy="64" r="46" fill="#FFF9F5" stroke="#4A3B52" stroke-width="5"/>
+                                    <path d="M60,64 L60,18 A46,46 0 0,1 106,64 Z" fill="#FFC8DD" stroke="#4A3B52" stroke-width="3"/>
+                                    <path d="M60,64 L106,64 A46,46 0 0,1 60,110 Z" fill="#CDB4DB" stroke="#4A3B52" stroke-width="3"/>
+                                    <path d="M60,64 L60,110 A46,46 0 0,1 14,64 Z" fill="#FDFFB6" stroke="#4A3B52" stroke-width="3"/>
+                                    <path d="M60,64 L14,64 A46,46 0 0,1 60,18 Z" fill="#BDE0FE" stroke="#4A3B52" stroke-width="3"/>
+                                    <circle cx="60" cy="64" r="10" fill="#FFF9F5" stroke="#4A3B52" stroke-width="4"/>
+                                    <path d="M60,34 L47,12 A13,13 0 1,1 73,12 Z" fill="#000000" stroke="#FFF9F5" stroke-width="2"/>
+                                    <circle cx="60" cy="14" r="5" fill="#FFF9F5"/>
+                                </svg>
+                            </div>
+                            <span class="font-extrabold text-base text-[#4A3B52]">命運大輪盤</span>
+                            <span class="text-xs font-bold text-[#4A3B52]/80 mt-0.5">交給指針決定！</span>
+                        </button>
+
+                        <!-- 翻牌模式按鈕 -->
+                        <button id="select-card-btn" type="button" class="mode-card bg-[#FFC8DD] p-4 flex flex-col items-center justify-center text-center cursor-pointer group">
+                            <div class="w-24 h-24 mb-2 flex items-center justify-center">
+                                <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow">
+                                    <rect x="20" y="16" width="64" height="88" rx="12" transform="rotate(-8 52 60)" fill="#CDB4DB" stroke="#4A3B52" stroke-width="4"/>
+                                    <rect x="32" y="14" width="66" height="90" rx="12" transform="rotate(6 65 59)" fill="#FFF9F5" stroke="#4A3B52" stroke-width="4"/>
+                                    <rect x="39" y="21" width="52" height="76" rx="8" transform="rotate(6 65 59)" fill="#FFC8DD" stroke="#4A3B52" stroke-width="2.5"/>
+                                    <g transform="rotate(6 65 59)">
+                                        <ellipse cx="65" cy="58" rx="16" ry="14" fill="#FFAFCC" stroke="#4A3B52" stroke-width="3"/>
+                                        <polygon points="52,48 48,38 58,43" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>
+                                        <polygon points="78,48 82,38 72,43" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>
+                                        <ellipse cx="65" cy="60" rx="6" ry="4.5" fill="#FF8FA3" stroke="#4A3B52" stroke-width="2.5"/>
+                                        <circle cx="63" cy="60" r="1.2" fill="#4A3B52"/>
+                                        <circle cx="67" cy="60" r="1.2" fill="#4A3B52"/>
+                                        <circle cx="57" cy="53" r="2" fill="#4A3B52"/>
+                                        <circle cx="73" cy="53" r="2" fill="#4A3B52"/>
+                                    </g>
+                                </svg>
+                            </div>
+                            <span class="font-extrabold text-base text-[#4A3B52]">幸運翻牌</span>
+                            <span class="text-xs font-bold text-[#4A3B52]/80 mt-0.5">6 選 1 盲抽餐點！</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 右側主要舞台區：輪盤或翻牌 -->
+            <div class="lg:col-span-7">
+                <div class="candy-box p-6 md:p-8 flex flex-col items-center justify-center min-h-[540px] relative overflow-hidden">
+                    
+                    <div class="w-full flex flex-wrap justify-between items-center gap-2 mb-4 pb-3 border-b-3 border-dashed border-[#CDB4DB]">
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 rounded-full bg-[#CDB4DB] border-2 border-[#4A3B52] text-xs font-extrabold">
+                                目前模式：<span id="current-mode-label">🎡 命運輪盤</span>
+                            </span>
+                        </div>
+                        <div class="text-xs font-bold text-[#6D597A]">
+                            可用預算：<span id="stage-balance-display" class="font-extrabold text-[#E63946] text-sm">尚未輸入</span>
+                        </div>
+                    </div>
+
+                    <!-- 輪盤舞台 -->
+                    <div id="wheel-stage" class="w-full flex flex-col items-center justify-center py-2">
+                        <div class="relative flex items-center justify-center my-2">
+                            <!-- 指針容器（含完整與斷裂 SVG） -->
+                            <div id="wheel-pointer-container" class="absolute -top-9 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+                                <svg id="pointer-intact-svg" width="76" height="88" viewBox="0 0 76 88" class="drop-shadow-[0_5px_0_rgba(74,59,82,0.5)]">
+                                    <path d="M38,84 L15,36 A24,24 0 1,1 61,36 Z" fill="#000000" stroke="#FFF9F5" stroke-width="4" stroke-linejoin="round"/>
+                                    <circle cx="38" cy="30" r="15" fill="#FFF9F5"/>
+                                    <path d="M28,23 L35,27 M48,23 L41,27" stroke="#000000" stroke-width="2.8" stroke-linecap="round"/>
+                                    <circle cx="32" cy="30" r="2.6" fill="#000000"/>
+                                    <circle cx="44" cy="30" r="2.6" fill="#000000"/>
+                                    <ellipse cx="27" cy="34" rx="2.5" ry="1.5" fill="#FF8FA3"/>
+                                    <ellipse cx="49" cy="34" rx="2.5" ry="1.5" fill="#FF8FA3"/>
+                                    <ellipse cx="38" cy="35" rx="3" ry="3.5" fill="#E63946"/>
+                                </svg>
+
+                                <svg id="pointer-broken-svg" width="92" height="96" viewBox="0 0 92 96" class="hidden drop-shadow-[0_6px_0_rgba(0,0,0,0.4)]">
+                                    <path d="M16,36 A24,24 0 1,1 62,36 L54,42 L45,35 L38,43 L29,35 L22,42 Z" fill="#000000" stroke="#FFF9F5" stroke-width="3"/>
+                                    <circle cx="39" cy="28" r="14" fill="#FFF9F5"/>
+                                    <path d="M30,24 L36,30 M36,24 L30,30 M42,24 L48,30 M48,24 L42,30" stroke="#E63946" stroke-width="2.8" stroke-linecap="round"/>
+                                    <g id="pointer-dangling-piece" class="origin-[32px_44px]">
+                                        <polygon points="22,46 30,40 38,48 46,40 54,46 38,88" fill="#000000" stroke="#FFF9F5" stroke-width="3" stroke-linejoin="round"/>
+                                        <path d="M60,42 L72,34 M63,50 L76,48" stroke="#E63946" stroke-width="3" stroke-linecap="round"/>
+                                    </g>
+                                </svg>
+                            </div>
+
+                            <div class="relative p-3.5 rounded-full bg-[#FFF9F5] border-4 border-[#4A3B52] shadow-[0_10px_0_#4A3B52]">
+                                <div id="wheel-rotator" class="rounded-full overflow-hidden border-4 border-[#4A3B52] bg-[#FFF9F5] transition-transform duration-[3800ms] ease-[cubic-bezier(0.15,0.88,0.22,1)]">
+                                    <canvas id="wheel-canvas" width="360" height="360" class="w-[290px] h-[290px] sm:w-[350px] sm:h-[350px] block"></canvas>
+                                </div>
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-[#FFF9F5] border-4 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center justify-center text-2xl pointer-events-none">
+                                    🍴
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 w-full max-w-xs text-center">
+                            <button id="spin-wheel-btn" disabled class="candy-btn w-full py-4 px-8 bg-[#FFC8DD] text-[#4A3B52] font-extrabold text-xl tracking-wide flex items-center justify-center gap-2">
+                                <i class="ph-fill ph-sparkle text-2xl"></i>
+                                <span id="spin-btn-text">⚠️ 請先輸入餘額</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 翻牌舞台 -->
+                    <div id="card-stage" class="w-full hidden py-2 relative">
+                        <div id="card-stage-header" class="text-center mb-4">
+                            <p class="font-extrabold text-base text-[#4A3B52]">✨ 憑直覺點擊任一張卡牌，翻開你今天的命運餐點！</p>
+                            <p class="text-xs font-bold text-[#6D597A]">卡牌已從菜單中隨機洗牌抽出 6 道料理（包含吃得起與吃不起的誘惑）</p>
+                        </div>
+
+                        <div id="giant-hand-overlay" class="pointer-events-none absolute inset-0 z-30 hidden items-center justify-center overflow-hidden">
+                            <div id="sweeping-hand-el" class="text-7xl sm:text-8xl drop-shadow-[0_8px_0_#4A3B52]">
+                                👋💢
+                            </div>
+                        </div>
+
+                        <div id="cards-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-xl mx-auto my-2 min-h-[360px]">
+                            <!-- 動態填入卡牌元素 -->
+                        </div>
+
+                        <div id="cards-trashed-graveyard" class="hidden flex-col items-center justify-center min-h-[360px] p-6 rounded-3xl border-4 border-dashed border-[#4A3B52] bg-[#FFF0F6]/90 text-center my-2">
+                            <div class="flex items-center justify-center gap-3 text-5xl sm:text-6xl mb-3 animate-bounce">
+                                <span>🗑️</span>
+                                <span>🧻</span>
+                                <span>💨</span>
+                            </div>
+                            <div class="inline-block px-4 py-1 rounded-full bg-[#E63946] text-white font-extrabold text-xs mb-2">
+                                404 CARDS NOT FOUND • 卡牌已全數報廢
+                            </div>
+                            <h3 class="text-2xl font-extrabold text-[#4A3B52] mb-1">
+                                「不玩了啦！卡牌已全部丟進垃圾桶！」
+                            </h3>
+                            <p class="text-sm font-bold text-[#6D597A] max-w-md">
+                                給你預算內的食物還挑三揀四，發牌員已經氣到把 6 張卡牌揉成廢紙團丟掉了，現場只剩紙屑與西北風！
+                            </p>
+                        </div>
+
+                        <div id="card-stage-footer" class="mt-6 flex justify-center">
+                            <button id="shuffle-cards-btn" type="button" class="candy-btn bg-[#BDE0FE] px-5 py-2.5 font-extrabold text-sm flex items-center gap-2">
+                                <i class="ph-bold ph-shuffle text-lg"></i>
+                                <span>重新洗牌換一批</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 自訂菜單管理面板 -->
+        <section id="custom-menu-panel" class="candy-box p-6 mt-8 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b-3 border-[#4A3B52]">
+                <div>
+                    <h3 class="text-xl font-extrabold flex items-center gap-2">
+                        <span>🛠️ 自訂輪盤與卡牌菜單</span>
+                    </h3>
+                    <p class="text-xs font-bold text-[#6D597A]">你可以自由修改餐點名稱與價格，也可以新增自己想吃的店！即時同步至輪盤與卡牌。</p>
+                </div>
+                <button id="close-menu-btn" class="self-end sm:self-auto candy-btn bg-[#FFAFCC] px-4 py-1.5 text-xs font-extrabold">
+                    收起面板 ✕
+                </button>
+            </div>
+
+            <form id="add-food-form" class="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-6 bg-[#FFF0F6] p-4 rounded-2xl border-3 border-[#4A3B52]">
+                <div class="sm:col-span-5">
+                    <label class="block text-xs font-extrabold mb-1">餐點名稱</label>
+                    <input id="new-food-name" type="text" required maxlength="12" placeholder="例如：巷口鹹酥雞" class="w-full px-3 py-2 rounded-xl border-2 border-[#4A3B52] font-bold text-sm">
+                </div>
+                <div class="sm:col-span-4">
+                    <label class="block text-xs font-extrabold mb-1">預估價格 (NT$)</label>
+                    <input id="new-food-price" type="number" required min="1" max="99999" placeholder="例如：150" class="w-full px-3 py-2 rounded-xl border-2 border-[#4A3B52] font-bold text-sm">
+                </div>
+                <div class="sm:col-span-3 flex items-end">
+                    <button type="submit" class="candy-btn w-full bg-[#CAFFBF] py-2 px-4 font-extrabold text-sm flex items-center justify-center gap-1">
+                        <i class="ph-bold ph-plus-circle"></i>
+                        <span>新增品項</span>
+                    </button>
+                </div>
+            </form>
+
+            <div id="food-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <!-- 動態生成的品項清單 -->
+            </div>
+        </section>
+
+    </div>
+
+    <!-- 結果彈出視窗 -->
+    <div id="result-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="candy-box max-w-md w-full p-6 md:p-8 text-center relative animate-[bounce_0.35s_ease-in-out]">
+            <div id="result-emoji" class="w-20 h-20 mx-auto mb-4 rounded-full bg-[#FFAFCC] border-4 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center justify-center text-4xl">
+                🍱
+            </div>
+
+            <div class="inline-block px-4 py-1 rounded-full bg-[#CDB4DB] border-2 border-[#4A3B52] font-extrabold text-xs mb-2">
+                命運選中的餐點
+            </div>
+            <h3 id="result-food-title" class="text-2xl md:text-3xl font-extrabold text-[#4A3B52] mb-1">
+                精緻火鍋 ($450)
+            </h3>
+            <p id="result-balance-compare" class="text-xs font-bold text-[#6D597A] mb-4">
+                你的錢包餘額：NT$ 100
+            </p>
+
+            <div id="result-message-box" class="p-4 rounded-2xl border-3 border-[#4A3B52] bg-[#FFF0F6] font-extrabold text-base md:text-lg text-[#4A3B52] mb-6 leading-relaxed">
+                哈哈你預算不足，沒辦法吃太貴的食物
+            </div>
+
+            <div id="insufficient-actions" class="hidden">
+                <button id="try-again-poor-btn" type="button" class="candy-btn w-full py-3.5 bg-[#A2D2FF] font-extrabold text-lg">
+                    再轉一次 😭
+                </button>
+            </div>
+
+            <div id="sufficient-actions" class="hidden flex-col sm:flex-row gap-3">
+                <button id="unsatisfied-btn" type="button" class="candy-btn flex-1 py-3 px-4 bg-[#CDB4DB] font-extrabold text-base">
+                    我不滿意 🙄
+                </button>
+                <button id="accept-food-btn" type="button" class="candy-btn flex-1 py-3 px-4 bg-[#CAFFBF] font-extrabold text-base">
+                    噢耶 ! 終於可以吃飯啦 🎉
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 開心用餐彈窗 -->
+    <div id="happy-eat-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="candy-box max-w-md w-full p-8 text-center bg-[#FFF9F5]">
+            <div class="text-6xl mb-3">🥳🍽️</div>
+            <h3 class="text-2xl font-extrabold text-[#4A3B52] mb-2">決定就是它了！</h3>
+            <p id="happy-eat-summary" class="font-bold text-base text-[#6D597A] mb-6">
+                快帶著你的錢包去享用美味的一餐吧！
+            </p>
+            <button id="close-happy-modal-btn" class="candy-btn w-full py-3 bg-[#FFAFCC] font-extrabold text-lg">
+                太棒啦！再玩一局 ✨
+            </button>
+        </div>
+    </div>
+
+    <!-- 毀滅警告視窗（指針斷裂 / 卡牌報廢） -->
+    <div id="broken-warning-modal" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4">
+        <div id="broken-modal-card" class="max-w-xl w-full bg-[#120407] border-[6px] border-[#FF0033] rounded-3xl p-6 md:p-9 text-center shadow-[0_0_60px_rgba(255,0,51,0.85)] relative">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-[#FF0033] border-4 border-white flex items-center justify-center text-4xl animate-pulse shadow-[0_0_25px_#FF0033]">
+                🚨
+            </div>
+            <div class="inline-block px-4 py-1 rounded-full bg-[#FF0033] text-white font-extrabold text-xs tracking-widest uppercase mb-3">
+                <span id="broken-error-badge">FATAL ERROR • 命運決策器已罷工</span>
+            </div>
+
+            <h2 class="text-2xl md:text-4xl font-extrabold text-[#FF2A55] leading-tight mb-4 drop-shadow-[0_2px_10px_rgba(255,0,51,0.6)]">
+                「醒醒吧！你的荷包不允許你這麼任性！」
+            </h2>
+            <p id="broken-modal-subtitle" class="text-base md:text-lg font-bold text-zinc-200 mb-6 leading-relaxed">
+                因為你太厚臉皮一直重轉，輪盤指針已經氣到自斷了。乖乖接受命運，去吃泡麵或喝西北風吧！
+            </p>
+            <div class="py-3 px-4 rounded-xl bg-[#FF0033]/20 border border-[#FF0033] text-[#FF8FA3] text-sm font-bold flex items-center justify-center gap-2 mb-4">
+                <i class="ph-fill ph-lock-key text-lg"></i>
+                <span>系統所有按鈕已全面失效鎖死 • 請放下手機去喝西北風</span>
+            </div>
+
+            <button id="replay-voice-btn" type="button" class="candy-btn bg-[#FF0033] text-white px-5 py-2.5 text-sm font-extrabold flex items-center justify-center gap-2 mx-auto hover:bg-[#D90429]">
+                <i class="ph-fill ph-speaker-high text-lg"></i>
+                <span>🔊 再次聆聽無情嘲諷語音（若無聲音請點此）</span>
+            </button>
+        </div>
+
+        <button id="emergency-reset-btn" type="button" class="fixed bottom-5 right-5 z-50 bg-zinc-900 hover:bg-red-700 text-white border-2 border-zinc-400 px-4 py-2.5 rounded-full text-xs sm:text-sm font-extrabold transition flex items-center gap-2 shadow-[0_4px_15px_rgba(0,0,0,0.8)] cursor-pointer">
+            <i class="ph-bold ph-wrench text-base"></i>
+            <span id="emergency-reset-text">🔧 偷偷用膠帶黏回指針 / 去垃圾桶撿回卡牌 (重置)</span>
+        </button>
+    </div>
+
+    <script>
+        /**************************************************************
+         * 全域狀態與預設菜單設定
+         **************************************************************/
+        const CANDY_COLORS = [
+            '#BDE0FE', // 晴空藍
+            '#FFC8DD', // 櫻花粉
+            '#CDB4DB', // 淺紫
+            '#FDFFB6', // 奶油黃
+            '#CAFFBF', // 薄荷綠
+            '#FFAFCC', // 蜜桃粉
+            '#A2D2FF'  // 水藍
+        ];
+
+        const DEFAULT_FOODS = [
+            { id: 1, name: '豪華麻辣火鍋', price: 450, icon: '🍲' },
+            { id: 2, name: '炙燒厚切牛排', price: 350, icon: '🥩' },
+            { id: 3, name: '極上迴轉壽司', price: 250, icon: '🍣' },
+            { id: 4, name: '香脆雞腿便當', price: 100, icon: '🍱' },
+            { id: 5, name: '古早味滷肉飯', price: 50,  icon: '🍚' },
+            { id: 6, name: '巷口陽春麵',   price: 45,  icon: '🍜' },
+            { id: 7, name: '超商御飯糰',   price: 35,  icon: '🍙' },
+            { id: 8, name: '日式拉麵套餐', price: 220, icon: '🍥' }
+        ];
+
+        let foodList = JSON.parse(JSON.stringify(DEFAULT_FOODS));
+        let hungerLevel = 5;
+        let walletBalance = null;
+        let currentMode = 'wheel';
+        let count = 0;
+        let isSpinning = false;
+        let isBroken = false;
+        let currentWheelRotation = 0;
+        let currentCardDeck = [];
+
+        /**************************************************************
+         * DOM 元素取得
+         **************************************************************/
+        const mainAppWrapper = document.getElementById('main-app-wrapper');
+        const hungerSlider = document.getElementById('hunger-slider');
+        const hungerValueBadge = document.getElementById('hunger-value-badge');
+        const hungerDesc = document.getElementById('hunger-desc');
+        const walletInput = document.getElementById('wallet-input');
+        const walletHint = document.getElementById('wallet-hint');
+        const modeLockOverlay = document.getElementById('mode-lock-overlay');
+        const stageBalanceDisplay = document.getElementById('stage-balance-display');
+        const retryCountDisplay = document.getElementById('retry-count-display');
+
+        const selectWheelBtn = document.getElementById('select-wheel-btn');
+        const selectCardBtn = document.getElementById('select-card-btn');
+        const currentModeLabel = document.getElementById('current-mode-label');
+        const wheelStage = document.getElementById('wheel-stage');
+        const cardStage = document.getElementById('card-stage');
+
+        const wheelCanvas = document.getElementById('wheel-canvas');
+        const wheelRotator = document.getElementById('wheel-rotator');
+        const spinWheelBtn = document.getElementById('spin-wheel-btn');
+        const spinBtnText = document.getElementById('spin-btn-text');
+        const wheelPointerContainer = document.getElementById('wheel-pointer-container');
+        const pointerIntactSvg = document.getElementById('pointer-intact-svg');
+        const pointerBrokenSvg = document.getElementById('pointer-broken-svg');
+
+        const cardsGrid = document.getElementById('cards-grid');
+        const cardsTrashedGraveyard = document.getElementById('cards-trashed-graveyard');
+        const giantHandOverlay = document.getElementById('giant-hand-overlay');
+        const sweepingHandEl = document.getElementById('sweeping-hand-el');
+        const cardStageHeader = document.getElementById('card-stage-header');
+        const cardStageFooter = document.getElementById('card-stage-footer');
+        const shuffleCardsBtn = document.getElementById('shuffle-cards-btn');
+
+        const toggleMenuBtn = document.getElementById('toggle-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu-btn');
+        const customMenuPanel = document.getElementById('custom-menu-panel');
+        const addFoodForm = document.getElementById('add-food-form');
+        const newFoodName = document.getElementById('new-food-name');
+        const newFoodPrice = document.getElementById('new-food-price');
+        const foodListContainer = document.getElementById('food-list-container');
+
+        const resultModal = document.getElementById('result-modal');
+        const resultEmoji = document.getElementById('result-emoji');
+        const resultFoodTitle = document.getElementById('result-food-title');
+        const resultBalanceCompare = document.getElementById('result-balance-compare');
+        const resultMessageBox = document.getElementById('result-message-box');
+        const insufficientActions = document.getElementById('insufficient-actions');
+        const sufficientActions = document.getElementById('sufficient-actions');
+        const tryAgainPoorBtn = document.getElementById('try-again-poor-btn');
+        const unsatisfiedBtn = document.getElementById('unsatisfied-btn');
+        const acceptFoodBtn = document.getElementById('accept-food-btn');
+
+        const happyEatModal = document.getElementById('happy-eat-modal');
+        const happyEatSummary = document.getElementById('happy-eat-summary');
+        const closeHappyModalBtn = document.getElementById('close-happy-modal-btn');
+
+        const brokenWarningModal = document.getElementById('broken-warning-modal');
+        const brokenModalCard = document.getElementById('broken-modal-card');
+        const brokenErrorBadge = document.getElementById('broken-error-badge');
+        const brokenModalSubtitle = document.getElementById('broken-modal-subtitle');
+        const emergencyResetBtn = document.getElementById('emergency-reset-btn');
+        const emergencyResetText = document.getElementById('emergency-reset-text');
+        const replayVoiceBtn = document.getElementById('replay-voice-btn');
+
+        /**************************************************************
+         * Web Audio API 音效引擎與語音朗讀機制
+         **************************************************************/
+        let audioCtx = null;
+        let speechUnlocked = false;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // 行動裝置首次觸控或點擊即刻解鎖音效與語音佇列
+        function unlockAudioImmediately() {
+            try {
+                const ctx = getAudioContext();
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                const buffer = ctx.createBuffer(1, 1, 22050);
+                const source = ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(ctx.destination);
+                source.start(0);
+            } catch (e) {}
+            unlockMobileSpeech();
+        }
+
+        ['pointerdown', 'touchstart', 'mousedown', 'keydown'].forEach(evtName => {
+            window.addEventListener(evtName, unlockAudioImmediately, { once: true, passive: true });
+        });
+
+        function unlockMobileSpeech() {
+            if (speechUnlocked || !('speechSynthesis' in window)) return;
+            try {
+                const warmUp = new SpeechSynthesisUtterance('');
+                warmUp.volume = 0;
+                window.speechSynthesis.speak(warmUp);
+                speechUnlocked = true;
+            } catch (e) {}
+        }
+
+        function playPopSound(freq = 520, duration = 0.08) {
+            try {
+                const ctx = getAudioContext();
+                const startSound = () => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + duration);
+                };
+
+                if (ctx.state === 'suspended') {
+                    ctx.resume().then(startSound).catch(() => {});
+                } else {
+                    startSound();
+                }
+            } catch (e) {}
+        }
+
+        function playSnapBreakSound() {
+            try {
+                const ctx = getAudioContext();
+                const bufferSize = ctx.sampleRate * 0.16;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.03));
+                }
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1200, ctx.currentTime);
+
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.9, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+                noise.start();
+
+                const osc = ctx.createOscillator();
+                const oscGain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(190, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(45, ctx.currentTime + 0.18);
+                oscGain.gain.setValueAtTime(0.6, ctx.currentTime);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+                osc.connect(oscGain);
+                oscGain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.18);
+            } catch (e) {}
+        }
+
+        function playCardCrumpleAndTossSound() {
+            try {
+                const ctx = getAudioContext();
+                for (let burst = 0; burst < 4; burst++) {
+                    const startOffset = burst * 0.14;
+                    const bufferSize = ctx.sampleRate * 0.12;
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04));
+                    }
+                    const noise = ctx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(1600 + burst * 300, ctx.currentTime + startOffset);
+
+                    const gain = ctx.createGain();
+                    gain.gain.setValueAtTime(0.7, ctx.currentTime + startOffset);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startOffset + 0.11);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+                    noise.start(ctx.currentTime + startOffset);
+                }
+
+                const whoosh = ctx.createOscillator();
+                const whooshGain = ctx.createGain();
+                whoosh.type = 'sine';
+                whoosh.frequency.setValueAtTime(580, ctx.currentTime + 0.35);
+                whoosh.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.85);
+                whooshGain.gain.setValueAtTime(0.45, ctx.currentTime + 0.35);
+                whooshGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.85);
+                whoosh.connect(whooshGain);
+                whooshGain.connect(ctx.destination);
+                whoosh.start(ctx.currentTime + 0.35);
+                whoosh.stop(ctx.currentTime + 0.85);
+            } catch (e) {}
+        }
+
+        function playSirenAlarmOnly() {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                for (let i = 0; i < 4; i++) {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(i % 2 === 0 ? 780 : 520, now + i * 0.22);
+                    gain.gain.setValueAtTime(0.18, now + i * 0.22);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + (i + 1) * 0.22);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.22);
+                    osc.stop(now + (i + 1) * 0.22);
+                }
+            } catch (e) {}
+        }
+
+        function speakColdWarningMessage(breakdownMode) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume();
+                const text = breakdownMode === 'card'
+                    ? '醒醒吧！你的荷包不允許你這麼任性！因為你太厚臉皮一直重選，卡牌已經被氣到全部丟進垃圾桶了。乖乖接受命運，去吃泡麵或喝西北風吧！'
+                    : '醒醒吧！你的荷包不允許你這麼任性！因為你太厚臉皮一直崇轉，輪盤指針已經氣到自斷了。乖乖接受命運，去吃泡麵或喝西北風吧！';
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-TW';
+                utterance.pitch = 0.7;
+                utterance.rate = 1.05;
+                utterance.volume = 1;
+
+                const voices = window.speechSynthesis.getVoices();
+                const zhVoice = voices.find(v => v.lang && (v.lang.includes('zh-TW') || v.lang.includes('zh_TW') || v.lang.includes('zh')));
+                if (zhVoice) {
+                    utterance.voice = zhVoice;
+                }
+
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {}
+        }
+
+        /**************************************************************
+         * 輸入滑桿與錢包邏輯
+         **************************************************************/
+        const HUNGER_TEXTS = {
+            1: '🍵 1分：剛吃飽不久，只是嘴饞想咬點東西',
+            2: '🍪 2分：稍微有點空虛，吃個小點心也行',
+            3: '🥪 3分：肚子開始有感覺了，來點輕食不錯',
+            4: '🍙 4分：差不多該覓食囉，胃在敲碗了',
+            5: '😐 5分：普通餓，該吃頓正餐補充體力囉！',
+            6: '🍜 6分：肚子咕嚕咕嚕叫，想馬上看到食物！',
+            7: '🍱 7分：很餓！現在看到什麼都覺得超好吃',
+            8: '🍔 8分：餓到前胸貼後背，誰都別攔我吃飯！',
+            9: '🥩 9分：快餓昏了！手開始發抖，急需熱量支援',
+            10: '🦖 10分：極度飢餓暴走中！現在連一頭牛都吃得下！'
+        };
+
+        ['pointerdown', 'mousedown', 'touchstart'].forEach(evtName => {
+            hungerSlider.addEventListener(evtName, () => {
+                unlockAudioImmediately();
+                playPopSound(380 + hungerLevel * 30, 0.04);
+            }, { passive: true });
+        });
+
+        hungerSlider.addEventListener('input', (e) => {
+            hungerLevel = parseInt(e.target.value, 10);
+            hungerValueBadge.textContent = hungerLevel + ' 分';
+            hungerDesc.textContent = HUNGER_TEXTS[hungerLevel] || '';
+            playPopSound(380 + hungerLevel * 30, 0.04);
+        });
+
+        function updateWalletState(valStr) {
+            const parsed = parseInt(valStr, 10);
+            if (valStr === '' || isNaN(parsed) || parsed < 0) {
+                walletBalance = null;
+                modeLockOverlay.classList.remove('hidden');
+                spinWheelBtn.disabled = true;
+                spinBtnText.textContent = '⚠️ 請先輸入餘額';
+                stageBalanceDisplay.textContent = '尚未輸入';
+                walletHint.innerHTML = '<i class="ph-fill ph-warning-circle text-base"></i><span>⚠️ 請先輸入餘額，才能解鎖命運決策模式喔！</span>';
+                walletHint.className = 'mt-2.5 flex items-center gap-1.5 text-xs font-extrabold text-[#E63946]';
+            } else {
+                walletBalance = parsed;
+                modeLockOverlay.classList.add('hidden');
+                spinWheelBtn.disabled = false;
+                spinBtnText.textContent = '啟動命運輪盤！';
+                stageBalanceDisplay.textContent = 'NT$ ' + walletBalance;
+                
+                const affordableCount = foodList.filter(f => f.price <= walletBalance).length;
+                walletHint.innerHTML = `<i class="ph-fill ph-check-circle text-base"></i><span>已解鎖！目前菜單中有 ${affordableCount} 道料理符合你的預算。</span>`;
+                walletHint.className = 'mt-2.5 flex items-center gap-1.5 text-xs font-extrabold text-[#2A9D8F]';
+            }
+            drawWheel();
+            renderCards();
+        }
+
+        walletInput.addEventListener('input', (e) => {
+            updateWalletState(e.target.value.trim());
+        });
+
+        document.querySelectorAll('.quick-money-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const amount = btn.getAttribute('data-quick-money');
+                walletInput.value = amount;
+                playPopSound(600, 0.07);
+                updateWalletState(amount);
+            });
+        });
+
+        /**************************************************************
+         * 模式切換與輪盤 Canvas 繪製
+         **************************************************************/
+        function switchMode(mode) {
+            if (walletBalance === null || isBroken || isSpinning) return;
+            currentMode = mode;
+            playPopSound(540, 0.07);
+
+            if (mode === 'wheel') {
+                selectWheelBtn.classList.add('active-mode');
+                selectCardBtn.classList.remove('active-mode');
+                currentModeLabel.textContent = '🎡 命運輪盤';
+                wheelStage.classList.remove('hidden');
+                cardStage.classList.add('hidden');
+                drawWheel();
+            } else {
+                selectCardBtn.classList.add('active-mode');
+                selectWheelBtn.classList.remove('active-mode');
+                currentModeLabel.textContent = '🃏 幸運翻牌';
+                wheelStage.classList.add('hidden');
+                cardStage.classList.remove('hidden');
+                renderCards();
+            }
+        }
+
+        selectWheelBtn.addEventListener('click', () => switchMode('wheel'));
+        selectCardBtn.addEventListener('click', () => switchMode('card'));
+
+        function drawWheel() {
+            const ctx = wheelCanvas.getContext('2d');
+            const width = wheelCanvas.width;
+            const height = wheelCanvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = width / 2 - 6;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const total = foodList.length;
+            const arc = (2 * Math.PI) / total;
+            const startOffset = -Math.PI / 2;
+
+            foodList.forEach((item, index) => {
+                const angleStart = startOffset + index * arc;
+                const angleEnd = angleStart + arc;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angleStart, angleEnd);
+                ctx.closePath();
+                ctx.fillStyle = CANDY_COLORS[index % CANDY_COLORS.length];
+                ctx.fill();
+
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#4A3B52';
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angleStart + arc / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#4A3B52';
+
+                ctx.font = '800 15px "M PLUS Rounded 1c", sans-serif';
+                ctx.fillText((item.icon || '🍴') + ' ' + item.name, radius - 18, -3);
+
+                ctx.font = '700 13px "Fredoka", sans-serif';
+                if (walletBalance !== null && item.price > walletBalance) {
+                    ctx.fillStyle = '#D90429';
+                } else {
+                    ctx.fillStyle = '#4A3B52';
+                }
+                ctx.fillText('NT$' + item.price, radius - 20, 15);
+                ctx.restore();
+            });
+        }
+
+        /**************************************************************
+         * 輪盤轉動與卡牌翻轉運作
+         **************************************************************/
+        spinWheelBtn.addEventListener('click', () => {
+            if (walletBalance === null || isSpinning || isBroken) return;
+
+            if (count >= 2) {
+                triggerPointerBreakDown();
+                return;
+            }
+
+            isSpinning = true;
+            spinWheelBtn.disabled = true;
+            spinBtnText.textContent = '命運轉動中...';
+
+            const chosenIndex = Math.floor(Math.random() * foodList.length);
+            const sliceDeg = 360 / foodList.length;
+            const sliceCenterAngle = (chosenIndex + 0.5) * sliceDeg;
+            const jitter = (Math.random() - 0.5) * (sliceDeg * 0.55);
+            const targetStopAngle = (360 - sliceCenterAngle + jitter + 360) % 360;
+
+            const extraSpins = (5 + Math.floor(Math.random() * 2)) * 360;
+            const currentMod = currentWheelRotation % 360;
+            const delta = (targetStopAngle - currentMod + 360) % 360;
+
+            currentWheelRotation += extraSpins + delta;
+            wheelRotator.style.transform = `rotate(${currentWheelRotation}deg)`;
+
+            let tickCount = 0;
+            const tickInterval = setInterval(() => {
+                tickCount++;
+                playPopSound(350 + (tickCount % 5) * 40, 0.03);
+                if (tickCount > 18) clearInterval(tickInterval);
+            }, 170);
+
+            setTimeout(() => {
+                isSpinning = false;
+                spinWheelBtn.disabled = false;
+                spinBtnText.textContent = '啟動命運輪盤！';
+                evaluatePickedFood(foodList[chosenIndex], 'wheel');
+            }, 3900);
+        });
+
+        function getCuteCardIllustrationSVG(index) {
+            if (index % 2 === 0) {
+                return `<svg viewBox="0 0 80 80" class="w-16 h-16 mb-1">
+                    <ellipse cx="40" cy="44" rx="24" ry="20" fill="#FFAFCC" stroke="#4A3B52" stroke-width="3"/>
+                    <polygon points="22,30 16,16 30,24" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>
+                    <polygon points="58,30 64,16 50,24" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>
+                    <path d="M33,24 L47,24" stroke="#4A3B52" stroke-width="3.5" stroke-linecap="round"/>
+                    <ellipse cx="40" cy="47" rx="8" ry="6" fill="#FF8FA3" stroke="#4A3B52" stroke-width="2.5"/>
+                    <circle cx="37.5" cy="47" r="1.5" fill="#4A3B52"/>
+                    <circle cx="42.5" cy="47" r="1.5" fill="#4A3B52"/>
+                    <path d="M26,36 L33,39 M54,36 L47,39" stroke="#4A3B52" stroke-width="2.5" stroke-linecap="round"/>
+                    <circle cx="30" cy="41" r="2.2" fill="#4A3B52"/>
+                    <circle cx="50" cy="41" r="2.2" fill="#4A3B52"/>
+                </svg>`;
+            } else {
+                return `<svg viewBox="0 0 80 80" class="w-16 h-16 mb-1">
+                    <line x1="48" y1="12" x2="66" y2="34" stroke="#A0522D" stroke-width="3.5" stroke-linecap="round"/>
+                    <line x1="54" y1="10" x2="70" y2="32" stroke="#A0522D" stroke-width="3.5" stroke-linecap="round"/>
+                    <path d="M16,36 Q40,26 64,36" fill="#FDFFB6" stroke="#4A3B52" stroke-width="3"/>
+                    <path d="M14,36 L66,36 A26,24 0 0,1 14,36 Z" fill="#BDE0FE" stroke="#4A3B52" stroke-width="3"/>
+                    <rect x="30" y="57" width="20" height="5" rx="2" fill="#BDE0FE" stroke="#4A3B52" stroke-width="2.5"/>
+                    <path d="M31,43 L36,46 M49,43 L44,46" stroke="#4A3B52" stroke-width="2.2" stroke-linecap="round"/>
+                    <circle cx="34" cy="48" r="1.8" fill="#4A3B52"/>
+                    <circle cx="46" cy="48" r="1.8" fill="#4A3B52"/>
+                    <path d="M38,52 Q40,49 42,52" fill="none" stroke="#4A3B52" stroke-width="2" stroke-linecap="round"/>
+                </svg>`;
+            }
+        }
+
+        function renderCards() {
+            cardsGrid.innerHTML = '';
+            const shuffled = JSON.parse(JSON.stringify(foodList)).sort(() => Math.random() - 0.5);
+            currentCardDeck = [];
+            for (let i = 0; i < 6; i++) {
+                currentCardDeck.push(shuffled[i % shuffled.length]);
+            }
+
+            currentCardDeck.forEach((food, idx) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'flip-card h-44 cursor-pointer perspective-1000 select-none';
+                cardEl.innerHTML = `
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front bg-[#FFC8DD] p-2.5 flex flex-col items-center justify-center hover:brightness-105 transition">
+                            <div class="w-full h-full rounded-xl border-2 border-[#4A3B52] flex flex-col items-center justify-center p-2 bg-[#FFF0F6]/70">
+                                ${getCuteCardIllustrationSVG(idx)}
+                                <span class="font-extrabold text-xs text-[#4A3B52]">幸運卡 #${idx + 1}</span>
+                                <span class="text-[11px] font-bold text-[#6D597A]">點擊翻牌！</span>
+                            </div>
+                        </div>
+                        <div class="flip-card-back bg-[#FFF9F5] p-3 flex flex-col items-center justify-center">
+                            <div class="text-3xl mb-1">${food.icon || '🍱'}</div>
+                            <div class="font-extrabold text-base text-[#4A3B52] line-clamp-1">${food.name}</div>
+                            <div class="mt-1 px-3 py-0.5 rounded-full bg-[#FDFFB6] border-2 border-[#4A3B52] font-extrabold text-xs">
+                                NT$ ${food.price}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                cardEl.addEventListener('click', () => {
+                    if (walletBalance === null || isSpinning || isBroken) return;
+                    if (cardEl.classList.contains('flipped')) return;
+
+                    if (count >= 2) {
+                        triggerCardsThrownAway();
+                        return;
+                    }
+
+                    playPopSound(620, 0.08);
+                    cardEl.classList.add('flipped');
+                    isSpinning = true;
+
+                    setTimeout(() => {
+                        isSpinning = false;
+                        evaluatePickedFood(food, 'card');
+                    }, 750);
+                });
+
+                cardsGrid.appendChild(cardEl);
+            });
+        }
+
+        shuffleCardsBtn.addEventListener('click', () => {
+            if (isBroken || isSpinning) return;
+            playPopSound(480, 0.08);
+            renderCards();
+        });
+
+        /**************************************************************
+         * 結果判定與崩潰暴走事件
+         **************************************************************/
+        function evaluatePickedFood(food, sourceMode) {
+            resultEmoji.textContent = food.icon || '🍽️';
+            resultFoodTitle.textContent = `${food.name} (NT$ ${food.price})`;
+            resultBalanceCompare.textContent = `你的錢包餘額：NT$ ${walletBalance} ｜ 飢餓指數：${hungerLevel} 分`;
+
+            if (food.price > walletBalance) {
+                playPopSound(220, 0.2);
+                resultMessageBox.textContent = '「哈哈你預算不足，沒辦法吃太貴的食物」';
+                resultMessageBox.className = 'p-4 rounded-2xl border-3 border-[#4A3B52] bg-[#FFD6E0] font-extrabold text-base md:text-lg text-[#D90429] mb-6 leading-relaxed';
+                insufficientActions.classList.remove('hidden');
+                sufficientActions.classList.add('hidden');
+                sufficientActions.classList.remove('flex');
+                tryAgainPoorBtn.textContent = sourceMode === 'card' ? '再抽一次 😭' : '再轉一次 😭';
+            } else {
+                playPopSound(720, 0.15);
+                resultMessageBox.textContent = `「恭喜你可以去吃飯啦！」這道 ${food.name} 你的荷包完全負擔得起！`;
+                resultMessageBox.className = 'p-4 rounded-2xl border-3 border-[#4A3B52] bg-[#CAFFBF] font-extrabold text-base md:text-lg text-[#1B4332] mb-6 leading-relaxed';
+                insufficientActions.classList.add('hidden');
+                sufficientActions.classList.remove('hidden');
+                sufficientActions.classList.add('flex');
+            }
+
+            resultModal.classList.remove('hidden');
+            resultModal.classList.add('flex');
+        }
+
+        tryAgainPoorBtn.addEventListener('click', () => {
+            playPopSound(440, 0.06);
+            resultModal.classList.add('hidden');
+            resultModal.classList.remove('flex');
+            if (currentMode === 'card') {
+                renderCards();
+            }
+        });
+
+        unsatisfiedBtn.addEventListener('click', () => {
+            count++;
+            retryCountDisplay.textContent = `${count} / 2`;
+            playPopSound(300, 0.12);
+
+            const badge = document.getElementById('willful-badge');
+            badge.classList.add('scale-110', 'bg-[#FFAFCC]');
+            setTimeout(() => badge.classList.remove('scale-110', 'bg-[#FFAFCC]'), 300);
+
+            resultModal.classList.add('hidden');
+            resultModal.classList.remove('flex');
+
+            if (currentMode === 'card') {
+                renderCards();
+            }
+        });
+
+        acceptFoodBtn.addEventListener('click', () => {
+            playPopSound(880, 0.18);
+            resultModal.classList.add('hidden');
+            resultModal.classList.remove('flex');
+
+            happyEatSummary.textContent = `太棒了！帶著你的 NT$ ${walletBalance} 預算，快去享用美味的一餐吧！`;
+            happyEatModal.classList.remove('hidden');
+            happyEatModal.classList.add('flex');
+            launchConfetti();
+        });
+
+        closeHappyModalBtn.addEventListener('click', () => {
+            playPopSound(520, 0.08);
+            happyEatModal.classList.add('hidden');
+            happyEatModal.classList.remove('flex');
+            count = 0;
+            retryCountDisplay.textContent = '0 / 2';
+            if (currentMode === 'card') {
+                renderCards();
+            }
+        });
+
+        function triggerPointerBreakDown() {
+            isBroken = true;
+            isSpinning = true;
+            spinWheelBtn.disabled = true;
+            spinBtnText.textContent = '⚠️ 指針氣到發抖中...';
+
+            unlockMobileSpeech();
+
+            wheelPointerContainer.classList.add('pointer-shaking');
+            playPopSound(180, 0.25);
+
+            setTimeout(() => {
+                wheelPointerContainer.classList.remove('pointer-shaking');
+                pointerIntactSvg.classList.add('hidden');
+                pointerBrokenSvg.classList.remove('hidden');
+                document.getElementById('pointer-dangling-piece').classList.add('pointer-snapped');
+                playSnapBreakSound();
+                spinBtnText.textContent = '💥 指針已斷裂報銷';
+            }, 850);
+
+            setTimeout(() => {
+                showFatalWarningModal('wheel');
+            }, 2000);
+        }
+
+        function triggerCardsThrownAway() {
+            isBroken = true;
+            isSpinning = true;
+            currentModeLabel.textContent = '🗑️ 卡牌已丟垃圾桶';
+            shuffleCardsBtn.disabled = true;
+
+            unlockMobileSpeech();
+
+            const allCardEls = cardsGrid.querySelectorAll('.flip-card');
+            allCardEls.forEach(card => card.classList.add('pointer-shaking'));
+            playPopSound(190, 0.25);
+
+            setTimeout(() => {
+                playCardCrumpleAndTossSound();
+
+                giantHandOverlay.classList.remove('hidden');
+                giantHandOverlay.classList.add('flex');
+                sweepingHandEl.classList.add('hand-sweeping');
+
+                allCardEls.forEach((card, i) => {
+                    card.classList.remove('pointer-shaking');
+                    const tx = (i % 2 === 0 ? 1 : -1) * (220 + i * 45);
+                    const ty = 380 + i * 30;
+                    const rot = (i % 2 === 0 ? 1 : -1) * (360 + i * 80);
+                    card.style.setProperty('--tx', `${tx}px`);
+                    card.style.setProperty('--ty', `${ty}px`);
+                    card.style.setProperty('--rot', `${rot}deg`);
+                    card.classList.add('card-thrown');
+                });
+            }, 650);
+
+            setTimeout(() => {
+                giantHandOverlay.classList.add('hidden');
+                giantHandOverlay.classList.remove('flex');
+                cardsGrid.classList.add('hidden');
+                cardStageHeader.classList.add('hidden');
+                cardStageFooter.classList.add('hidden');
+
+                cardsTrashedGraveyard.classList.remove('hidden');
+                cardsTrashedGraveyard.classList.add('flex');
+            }, 1450);
+
+            setTimeout(() => {
+                showFatalWarningModal('card');
+            }, 2200);
+        }
+
+        function showFatalWarningModal(mode) {
+            mainAppWrapper.classList.add('grayscale-lock');
+            document.querySelectorAll('#main-app-wrapper button, #main-app-wrapper input').forEach(el => {
+                el.disabled = true;
+            });
+
+            if (mode === 'card') {
+                if (brokenErrorBadge) brokenErrorBadge.textContent = 'FATAL ERROR • 幸運卡牌已全數丟進垃圾桶';
+                if (brokenModalSubtitle) brokenModalSubtitle.textContent = '因為你太厚臉皮一直重選，卡牌已經被氣到全部丟進垃圾桶了！乖乖接受命運，去吃泡麵或喝西北風吧！';
+                if (emergencyResetText) emergencyResetText.textContent = '🗑️ 偷偷去垃圾桶撿回卡牌並燙平 (重置體驗)';
+            } else {
+                if (brokenErrorBadge) brokenErrorBadge.textContent = 'FATAL ERROR • 命運指針已氣到自斷';
+                if (brokenModalSubtitle) brokenModalSubtitle.textContent = '因為你太厚臉皮一直重轉，輪盤指針已經氣到自斷了。乖乖接受命運，去吃泡麵或喝西北風吧！';
+                if (emergencyResetText) emergencyResetText.textContent = '🩹 偷偷用膠帶黏回指針 (重置體驗)';
+            }
+
+            brokenWarningModal.classList.remove('hidden');
+            brokenWarningModal.classList.add('flex');
+            brokenModalCard.classList.add('alarm-modal-enter');
+
+            playSirenAlarmOnly();
+            speakColdWarningMessage(mode);
+        }
+
+        replayVoiceBtn.addEventListener('click', () => {
+            playSirenAlarmOnly();
+            speakColdWarningMessage(currentMode);
+        });
+
+        emergencyResetBtn.addEventListener('click', () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            count = 0;
+            isBroken = false;
+            isSpinning = false;
+            retryCountDisplay.textContent = '0 / 2';
+
+            pointerBrokenSvg.classList.add('hidden');
+            pointerIntactSvg.classList.remove('hidden');
+            document.getElementById('pointer-dangling-piece').classList.remove('pointer-snapped');
+
+            sweepingHandEl.classList.remove('hand-sweeping');
+            giantHandOverlay.classList.add('hidden');
+            giantHandOverlay.classList.remove('flex');
+            cardsTrashedGraveyard.classList.add('hidden');
+            cardsTrashedGraveyard.classList.remove('flex');
+            cardsGrid.classList.remove('hidden');
+            cardStageHeader.classList.remove('hidden');
+            cardStageFooter.classList.remove('hidden');
+
+            mainAppWrapper.classList.remove('grayscale-lock');
+            document.querySelectorAll('#main-app-wrapper button, #main-app-wrapper input').forEach(el => {
+                el.disabled = false;
+            });
+
+            brokenWarningModal.classList.add('hidden');
+            brokenWarningModal.classList.remove('flex');
+
+            updateWalletState(walletInput.value.trim());
+            switchMode(currentMode);
+        });
+
+        /**************************************************************
+         * 自訂菜單 CRUD 與彩帶特效
+         **************************************************************/
+        toggleMenuBtn.addEventListener('click', () => {
+            customMenuPanel.classList.toggle('hidden');
+            if (!customMenuPanel.classList.contains('hidden')) {
+                customMenuPanel.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+
+        closeMenuBtn.addEventListener('click', () => {
+            customMenuPanel.classList.add('hidden');
+        });
+
+        function renderFoodManagerList() {
+            foodListContainer.innerHTML = '';
+            foodList.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-2xl bg-white border-3 border-[#4A3B52] flex items-center justify-between gap-2 shadow-[0_3px_0_#4A3B52]';
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="text-xl">${item.icon || '🍴'}</span>
+                        <input type="text" value="${item.name}" data-idx="${index}" class="edit-name-input w-full font-extrabold text-sm px-2 py-1 rounded-lg border-2 border-transparent hover:border-[#CDB4DB] focus:border-[#4A3B52] focus:outline-none truncate">
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-extrabold text-[#6D597A]">$</span>
+                        <input type="number" min="1" value="${item.price}" data-idx="${index}" class="edit-price-input w-16 font-extrabold text-sm px-2 py-1 rounded-lg border-2 border-[#CDB4DB] text-right focus:outline-none">
+                        <button type="button" data-idx="${index}" class="delete-food-btn w-8 h-8 rounded-xl bg-[#FFD6E0] hover:bg-[#FFAFCC] border-2 border-[#4A3B52] flex items-center justify-center text-[#D90429] font-extrabold transition" title="刪除此品項">✕</button>
+                    </div>
+                `;
+                foodListContainer.appendChild(card);
+            });
+
+            document.querySelectorAll('.edit-name-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-idx'), 10);
+                    const val = e.target.value.trim();
+                    if (val) {
+                        foodList[idx].name = val;
+                        drawWheel();
+                        renderCards();
+                        if (walletBalance !== null) updateWalletState(String(walletBalance));
+                    }
+                });
+            });
+
+            document.querySelectorAll('.edit-price-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-idx'), 10);
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 0) {
+                        foodList[idx].price = val;
+                        drawWheel();
+                        renderCards();
+                        if (walletBalance !== null) updateWalletState(String(walletBalance));
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-food-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (foodList.length <= 2) {
+                        btn.classList.add('animate-bounce');
+                        setTimeout(() => btn.classList.remove('animate-bounce'), 400);
+                        return;
+                    }
+                    const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+                    foodList.splice(idx, 1);
+                    renderFoodManagerList();
+                    drawWheel();
+                    renderCards();
+                    if (walletBalance !== null) updateWalletState(String(walletBalance));
+                });
+            });
+        }
+
+        addFoodForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = newFoodName.value.trim();
+            const price = parseInt(newFoodPrice.value, 10);
+            if (!name || isNaN(price) || price < 0) return;
+
+            const randomIcons = ['🍔', '🍕', '🌮', '🥗', '🥟', '🍗', '🍝', '🍛', '🥘'];
+            const icon = randomIcons[Math.floor(Math.random() * randomIcons.length)];
+
+            foodList.push({
+                id: Date.now(),
+                name: name,
+                price: price,
+                icon: icon
+            });
+
+            newFoodName.value = '';
+            newFoodPrice.value = '';
+            playPopSound(660, 0.08);
+            renderFoodManagerList();
+            drawWheel();
+            renderCards();
+            if (walletBalance !== null) updateWalletState(String(walletBalance));
+        });
+
+        function launchConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.classList.remove('hidden');
+
+            const pieces = Array.from({ length: 90 }).map(() => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                size: Math.random() * 10 + 6,
+                speedY: Math.random() * 4 + 3,
+                speedX: (Math.random() - 0.5) * 3,
+                color: CANDY_COLORS[Math.floor(Math.random() * CANDY_COLORS.length)],
+                rotation: Math.random() * 360
+            }));
+
+            let frame = 0;
+            function renderFrame() {
+                frame++;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pieces.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.rotation += 5;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rotation * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.strokeStyle = '#4A3B52';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.restore();
+                });
+
+                if (frame < 160) {
+                    requestAnimationFrame(renderFrame);
+                } else {
+                    canvas.classList.add('hidden');
+                }
+            }
+            requestAnimationFrame(renderFrame);
+        }
+
+        window.onload = function () {
+            drawWheel();
+            renderCards();
+            renderFoodManagerList();
+        };
+    </script>
+</body>
+</html>
