@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>食物的決策輪盤 —— 專為選擇困難症與荷包乾癟者設計</title>
-    <!-- 引入 Tailwind CSS CDN -->
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts 圓潤字體 -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
-    <!-- 引入 Phosphor Icons 圖示庫 -->
+    <!-- 引入 Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         :root {
@@ -156,6 +156,27 @@
             animation: giant-hand-sweep 0.95s ease-in-out forwards;
         }
 
+        @keyframes card-gather-center {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--gx, 0px), var(--gy, 0px)) scale(0.25) rotate(-18deg); opacity: 0; }
+        }
+
+        @keyframes card-deal-in {
+            0% { transform: translate(var(--dx, 0px), var(--dy, -120px)) scale(0.2) rotate(-25deg); opacity: 0; }
+            70% { transform: translate(0, 0) scale(1.06) rotate(2deg); opacity: 1; }
+            100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .card-gathering {
+            animation: card-gather-center 0.26s cubic-bezier(0.4, 0, 1, 1) forwards;
+            pointer-events: none;
+        }
+
+        .card-dealing {
+            opacity: 0;
+            animation: card-deal-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
         .grayscale-lock {
             filter: grayscale(100%) contrast(125%) brightness(85%);
             pointer-events: none !important;
@@ -186,7 +207,6 @@
 
         input[type=range] {
             -webkit-appearance: none;
-            appearance: none;
             background: transparent;
         }
         input[type=range]::-webkit-slider-runnable-track {
@@ -197,7 +217,6 @@
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
             height: 28px;
             width: 28px;
             border-radius: 50%;
@@ -211,12 +230,11 @@
 </head>
 <body class="relative pb-16">
 
-    <!-- 慶祝特效彩帶 Canvas -->
     <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 hidden"></canvas>
 
     <div id="main-app-wrapper" class="max-w-6xl mx-auto px-4 pt-6">
         
-        <!-- Header 頂部導覽 -->
+        <!-- Header -->
         <header class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
             <div class="flex items-center gap-3">
                 <div class="w-14 h-14 rounded-2xl bg-[#FFAFCC] border-4 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center justify-center text-3xl">
@@ -233,21 +251,21 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <div id="willful-badge" class="px-4 py-2 rounded-2xl bg-[#CDB4DB] border-3 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center gap-2 font-bold text-sm transition-all duration-300">
+                <div id="willful-badge" class="px-4 py-2 rounded-2xl bg-[#CDB4DB] border-3 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center gap-2 font-bold text-sm">
                     <span>😤 任性嫌棄次數：</span>
                     <span id="retry-count-display" class="px-2.5 py-0.5 bg-white rounded-full border-2 border-[#4A3B52] text-[#E63946] font-extrabold">0 / 2</span>
                 </div>
                 <button id="toggle-menu-btn" class="candy-btn bg-[#FDFFB6] px-4 py-2 font-bold text-sm flex items-center gap-1.5">
-                    <i class="ph-bold ph-fork-knife text-lg"></i>
+                    <i class="ph-bold ph-ForkKnife text-lg"></i>
                     <span>自訂菜單</span>
                 </button>
             </div>
         </header>
 
-        <!-- 主操作區網格 -->
+        <!-- Main Grid Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            <!-- 左側步驟區：飢餓度滑桿、預算輸入與模式切換 -->
+            <!-- Left Column: Step 1 (Inputs) & Step 2 (Mode selection) -->
             <div class="lg:col-span-5 space-y-6">
                 
                 <section class="candy-box p-6 relative overflow-hidden">
@@ -258,7 +276,7 @@
                         <span>📋 輸入你的飢餓與財力</span>
                     </h2>
 
-                    <!-- 飢餓度滑桿 -->
+                    <!-- Hunger Slider -->
                     <div class="mb-6 bg-[#FFF0F6] p-4 rounded-2xl border-3 border-[#4A3B52]">
                         <div class="flex justify-between items-center mb-2">
                             <label for="hunger-slider" class="font-extrabold text-sm flex items-center gap-1">
@@ -274,7 +292,7 @@
                         </p>
                     </div>
 
-                    <!-- 錢包餘額輸入框 -->
+                    <!-- Wallet Input -->
                     <div class="bg-[#E8F4FF] p-4 rounded-2xl border-3 border-[#4A3B52]">
                         <label for="wallet-input" class="block font-extrabold text-sm mb-2">
                             💰 你目前的錢包餘額？ (NT$)
@@ -303,7 +321,6 @@
                     </div>
                 </section>
 
-                <!-- STEP 2 模式選擇 -->
                 <section id="mode-selection-section" class="candy-box p-6 relative transition-all">
                     <div id="mode-lock-overlay" class="absolute inset-0 bg-[#FFF9F5]/85 backdrop-blur-[2px] z-20 rounded-[24px] flex flex-col items-center justify-center p-6 text-center">
                         <div class="w-16 h-16 rounded-full bg-[#FFAFCC] border-4 border-[#4A3B52] flex items-center justify-center text-3xl mb-2 animate-bounce">
@@ -321,7 +338,7 @@
                     </h2>
 
                     <div class="grid grid-cols-2 gap-4">
-                        <!-- 輪盤模式按鈕 -->
+                        <!-- Wheel Mode Card -->
                         <button id="select-wheel-btn" type="button" class="mode-card active-mode bg-[#BDE0FE] p-4 flex flex-col items-center justify-center text-center cursor-pointer group">
                             <div class="w-24 h-24 mb-2 flex items-center justify-center">
                                 <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow">
@@ -339,7 +356,7 @@
                             <span class="text-xs font-bold text-[#4A3B52]/80 mt-0.5">交給指針決定！</span>
                         </button>
 
-                        <!-- 翻牌模式按鈕 -->
+                        <!-- Card Mode Card -->
                         <button id="select-card-btn" type="button" class="mode-card bg-[#FFC8DD] p-4 flex flex-col items-center justify-center text-center cursor-pointer group">
                             <div class="w-24 h-24 mb-2 flex items-center justify-center">
                                 <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow">
@@ -365,7 +382,7 @@
                 </section>
             </div>
 
-            <!-- 右側主要舞台區：輪盤或翻牌 -->
+            <!-- Right Column: Main Stage Area (Wheel or Cards) -->
             <div class="lg:col-span-7">
                 <div class="candy-box p-6 md:p-8 flex flex-col items-center justify-center min-h-[540px] relative overflow-hidden">
                     
@@ -380,10 +397,9 @@
                         </div>
                     </div>
 
-                    <!-- 輪盤舞台 -->
+                    <!-- Wheel Stage -->
                     <div id="wheel-stage" class="w-full flex flex-col items-center justify-center py-2">
                         <div class="relative flex items-center justify-center my-2">
-                            <!-- 指針容器（含完整與斷裂 SVG） -->
                             <div id="wheel-pointer-container" class="absolute -top-9 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
                                 <svg id="pointer-intact-svg" width="76" height="88" viewBox="0 0 76 88" class="drop-shadow-[0_5px_0_rgba(74,59,82,0.5)]">
                                     <path d="M38,84 L15,36 A24,24 0 1,1 61,36 Z" fill="#000000" stroke="#FFF9F5" stroke-width="4" stroke-linejoin="round"/>
@@ -425,7 +441,7 @@
                         </div>
                     </div>
 
-                    <!-- 翻牌舞台 -->
+                    <!-- Card Stage -->
                     <div id="card-stage" class="w-full hidden py-2 relative">
                         <div id="card-stage-header" class="text-center mb-4">
                             <p class="font-extrabold text-base text-[#4A3B52]">✨ 憑直覺點擊任一張卡牌，翻開你今天的命運餐點！</p>
@@ -439,7 +455,7 @@
                         </div>
 
                         <div id="cards-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-xl mx-auto my-2 min-h-[360px]">
-                            <!-- 動態填入卡牌元素 -->
+                            <!-- Dynamically populated cards -->
                         </div>
 
                         <div id="cards-trashed-graveyard" class="hidden flex-col items-center justify-center min-h-[360px] p-6 rounded-3xl border-4 border-dashed border-[#4A3B52] bg-[#FFF0F6]/90 text-center my-2">
@@ -472,7 +488,6 @@
 
         </div>
 
-        <!-- 自訂菜單管理面板 -->
         <section id="custom-menu-panel" class="candy-box p-6 mt-8 hidden">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b-3 border-[#4A3B52]">
                 <div>
@@ -504,13 +519,13 @@
             </form>
 
             <div id="food-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <!-- 動態生成的品項清單 -->
+                <!-- Dynamically populated food manager items -->
             </div>
         </section>
 
     </div>
 
-    <!-- 結果彈出視窗 -->
+    <!-- Result Modal -->
     <div id="result-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
         <div class="candy-box max-w-md w-full p-6 md:p-8 text-center relative animate-[bounce_0.35s_ease-in-out]">
             <div id="result-emoji" class="w-20 h-20 mx-auto mb-4 rounded-full bg-[#FFAFCC] border-4 border-[#4A3B52] shadow-[0_4px_0_#4A3B52] flex items-center justify-center text-4xl">
@@ -548,7 +563,7 @@
         </div>
     </div>
 
-    <!-- 開心用餐彈窗 -->
+    <!-- Happy Meal Modal -->
     <div id="happy-eat-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
         <div class="candy-box max-w-md w-full p-8 text-center bg-[#FFF9F5]">
             <div class="text-6xl mb-3">🥳🍽️</div>
@@ -562,7 +577,7 @@
         </div>
     </div>
 
-    <!-- 毀滅警告視窗（指針斷裂 / 卡牌報廢） -->
+    <!-- Fatal Warning Modal (Pointer Breakdown / Cards Trashed) -->
     <div id="broken-warning-modal" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4">
         <div id="broken-modal-card" class="max-w-xl w-full bg-[#120407] border-[6px] border-[#FF0033] rounded-3xl p-6 md:p-9 text-center shadow-[0_0_60px_rgba(255,0,51,0.85)] relative">
             <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-[#FF0033] border-4 border-white flex items-center justify-center text-4xl animate-pulse shadow-[0_0_25px_#FF0033]">
@@ -585,7 +600,7 @@
 
             <button id="replay-voice-btn" type="button" class="candy-btn bg-[#FF0033] text-white px-5 py-2.5 text-sm font-extrabold flex items-center justify-center gap-2 mx-auto hover:bg-[#D90429]">
                 <i class="ph-fill ph-speaker-high text-lg"></i>
-                <span>🔊 再次聆聽無情嘲諷語音（若無聲音請點此）</span>
+                <span>🔊 再次聆聽無情嘲諷語音（手機若無聲請點此）</span>
             </button>
         </div>
 
@@ -596,17 +611,14 @@
     </div>
 
     <script>
-        /**************************************************************
-         * 全域狀態與預設菜單設定
-         **************************************************************/
         const CANDY_COLORS = [
-            '#BDE0FE', // 晴空藍
-            '#FFC8DD', // 櫻花粉
+            '#BDE0FE', // 淺藍
+            '#FFC8DD', // 淺粉
             '#CDB4DB', // 淺紫
             '#FDFFB6', // 奶油黃
             '#CAFFBF', // 薄荷綠
-            '#FFAFCC', // 蜜桃粉
-            '#A2D2FF'  // 水藍
+            '#FFAFCC', // 櫻花粉
+            '#A2D2FF'  // 晴空藍
         ];
 
         const DEFAULT_FOODS = [
@@ -630,9 +642,6 @@
         let currentWheelRotation = 0;
         let currentCardDeck = [];
 
-        /**************************************************************
-         * DOM 元素取得
-         **************************************************************/
         const mainAppWrapper = document.getElementById('main-app-wrapper');
         const hungerSlider = document.getElementById('hunger-slider');
         const hungerValueBadge = document.getElementById('hunger-value-badge');
@@ -696,9 +705,6 @@
         const emergencyResetText = document.getElementById('emergency-reset-text');
         const replayVoiceBtn = document.getElementById('replay-voice-btn');
 
-        /**************************************************************
-         * Web Audio API 音效引擎與語音朗讀機制
-         **************************************************************/
         let audioCtx = null;
         let speechUnlocked = false;
 
@@ -713,7 +719,6 @@
             return audioCtx;
         }
 
-        // 行動裝置首次觸控或點擊即刻解鎖音效與語音佇列
         function unlockAudioImmediately() {
             try {
                 const ctx = getAudioContext();
@@ -743,7 +748,9 @@
             } catch (e) {}
         }
 
-        function playPopSound(freq = 520, duration = 0.08) {
+        function playPopSound(freq, duration) {
+            if (freq === undefined) freq = 520;
+            if (duration === undefined) duration = 0.08;
             try {
                 const ctx = getAudioContext();
                 const startSound = () => {
@@ -848,53 +855,48 @@
             } catch (e) {}
         }
 
-        function playSirenAlarmOnly() {
+        function playCardDealSound(cardIndex) {
             try {
                 const ctx = getAudioContext();
-                const now = ctx.currentTime;
-                for (let i = 0; i < 4; i++) {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(i % 2 === 0 ? 780 : 520, now + i * 0.22);
-                    gain.gain.setValueAtTime(0.18, now + i * 0.22);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + (i + 1) * 0.22);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(now + i * 0.22);
-                    osc.stop(now + (i + 1) * 0.22);
+                const startTime = ctx.currentTime + cardIndex * 0.075;
+
+                // 清脆紙張滑動摩擦聲
+                const bufferSize = Math.floor(ctx.sampleRate * 0.055);
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.018));
                 }
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1800 + cardIndex * 180, startTime);
+
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.35, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.05);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+                noise.start(startTime);
+
+                // 輕快波波音階
+                const osc = ctx.createOscillator();
+                const oscGain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(420 + cardIndex * 55, startTime);
+                oscGain.gain.setValueAtTime(0.12, startTime);
+                oscGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.06);
+                osc.connect(oscGain);
+                oscGain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.06);
             } catch (e) {}
         }
 
-        function speakColdWarningMessage(breakdownMode) {
-            if (!('speechSynthesis' in window)) return;
-            try {
-                window.speechSynthesis.cancel();
-                window.speechSynthesis.resume();
-                const text = breakdownMode === 'card'
-                    ? '醒醒吧！你的荷包不允許你這麼任性！因為你太厚臉皮一直重選，卡牌已經被氣到全部丟進垃圾桶了。乖乖接受命運，去吃泡麵或喝西北風吧！'
-                    : '醒醒吧！你的荷包不允許你這麼任性！因為你太厚臉皮一直崇轉，輪盤指針已經氣到自斷了。乖乖接受命運，去吃泡麵或喝西北風吧！';
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'zh-TW';
-                utterance.pitch = 0.7;
-                utterance.rate = 1.05;
-                utterance.volume = 1;
-
-                const voices = window.speechSynthesis.getVoices();
-                const zhVoice = voices.find(v => v.lang && (v.lang.includes('zh-TW') || v.lang.includes('zh_TW') || v.lang.includes('zh')));
-                if (zhVoice) {
-                    utterance.voice = zhVoice;
-                }
-
-                window.speechSynthesis.speak(utterance);
-            } catch (e) {}
-        }
-
-        /**************************************************************
-         * 輸入滑桿與錢包邏輯
-         **************************************************************/
         const HUNGER_TEXTS = {
             1: '🍵 1分：剛吃飽不久，只是嘴饞想咬點東西',
             2: '🍪 2分：稍微有點空虛，吃個小點心也行',
@@ -939,8 +941,8 @@
                 spinBtnText.textContent = '啟動命運輪盤！';
                 stageBalanceDisplay.textContent = 'NT$ ' + walletBalance;
                 
-                const affordableCount = foodList.filter(f => f.price <= walletBalance).length;
-                walletHint.innerHTML = `<i class="ph-fill ph-check-circle text-base"></i><span>已解鎖！目前菜單中有 ${affordableCount} 道料理符合你的預算。</span>`;
+                const affordableCount = foodList.filter(function(f) { return f.price <= walletBalance; }).length;
+                walletHint.innerHTML = '<i class="ph-fill ph-check-circle text-base"></i><span>已解鎖！目前菜單中有 ' + affordableCount + ' 道料理符合你的預算。</span>';
                 walletHint.className = 'mt-2.5 flex items-center gap-1.5 text-xs font-extrabold text-[#2A9D8F]';
             }
             drawWheel();
@@ -960,9 +962,6 @@
             });
         });
 
-        /**************************************************************
-         * 模式切換與輪盤 Canvas 繪製
-         **************************************************************/
         function switchMode(mode) {
             if (walletBalance === null || isBroken || isSpinning) return;
             currentMode = mode;
@@ -981,7 +980,7 @@
                 currentModeLabel.textContent = '🃏 幸運翻牌';
                 wheelStage.classList.add('hidden');
                 cardStage.classList.remove('hidden');
-                renderCards();
+                renderCards(false);
             }
         }
 
@@ -1037,9 +1036,6 @@
             });
         }
 
-        /**************************************************************
-         * 輪盤轉動與卡牌翻轉運作
-         **************************************************************/
         spinWheelBtn.addEventListener('click', () => {
             if (walletBalance === null || isSpinning || isBroken) return;
 
@@ -1063,7 +1059,7 @@
             const delta = (targetStopAngle - currentMod + 360) % 360;
 
             currentWheelRotation += extraSpins + delta;
-            wheelRotator.style.transform = `rotate(${currentWheelRotation}deg)`;
+            wheelRotator.style.transform = 'rotate(' + currentWheelRotation + 'deg)';
 
             let tickCount = 0;
             const tickInterval = setInterval(() => {
@@ -1082,34 +1078,34 @@
 
         function getCuteCardIllustrationSVG(index) {
             if (index % 2 === 0) {
-                return `<svg viewBox="0 0 80 80" class="w-16 h-16 mb-1">
-                    <ellipse cx="40" cy="44" rx="24" ry="20" fill="#FFAFCC" stroke="#4A3B52" stroke-width="3"/>
-                    <polygon points="22,30 16,16 30,24" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>
-                    <polygon points="58,30 64,16 50,24" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>
-                    <path d="M33,24 L47,24" stroke="#4A3B52" stroke-width="3.5" stroke-linecap="round"/>
-                    <ellipse cx="40" cy="47" rx="8" ry="6" fill="#FF8FA3" stroke="#4A3B52" stroke-width="2.5"/>
-                    <circle cx="37.5" cy="47" r="1.5" fill="#4A3B52"/>
-                    <circle cx="42.5" cy="47" r="1.5" fill="#4A3B52"/>
-                    <path d="M26,36 L33,39 M54,36 L47,39" stroke="#4A3B52" stroke-width="2.5" stroke-linecap="round"/>
-                    <circle cx="30" cy="41" r="2.2" fill="#4A3B52"/>
-                    <circle cx="50" cy="41" r="2.2" fill="#4A3B52"/>
-                </svg>`;
+                return '<svg viewBox="0 0 80 80" class="w-16 h-16 mb-1">' +
+                    '<ellipse cx="40" cy="44" rx="24" ry="20" fill="#FFAFCC" stroke="#4A3B52" stroke-width="3"/>' +
+                    '<polygon points="22,30 16,16 30,24" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>' +
+                    '<polygon points="58,30 64,16 50,24" fill="#FFAFCC" stroke="#4A3B52" stroke-width="2.5"/>' +
+                    '<path d="M33,24 L47,24" stroke="#4A3B52" stroke-width="3.5" stroke-linecap="round"/>' +
+                    '<ellipse cx="40" cy="47" rx="8" ry="6" fill="#FF8FA3" stroke="#4A3B52" stroke-width="2.5"/>' +
+                    '<circle cx="37.5" cy="47" r="1.5" fill="#4A3B52"/>' +
+                    '<circle cx="42.5" cy="47" r="1.5" fill="#4A3B52"/>' +
+                    '<path d="M26,36 L33,39 M54,36 L47,39" stroke="#4A3B52" stroke-width="2.5" stroke-linecap="round"/>' +
+                    '<circle cx="30" cy="41" r="2.2" fill="#4A3B52"/>' +
+                    '<circle cx="50" cy="41" r="2.2" fill="#4A3B52"/>' +
+                    '</svg>';
             } else {
-                return `<svg viewBox="0 0 80 80" class="w-16 h-16 mb-1">
-                    <line x1="48" y1="12" x2="66" y2="34" stroke="#A0522D" stroke-width="3.5" stroke-linecap="round"/>
-                    <line x1="54" y1="10" x2="70" y2="32" stroke="#A0522D" stroke-width="3.5" stroke-linecap="round"/>
-                    <path d="M16,36 Q40,26 64,36" fill="#FDFFB6" stroke="#4A3B52" stroke-width="3"/>
-                    <path d="M14,36 L66,36 A26,24 0 0,1 14,36 Z" fill="#BDE0FE" stroke="#4A3B52" stroke-width="3"/>
-                    <rect x="30" y="57" width="20" height="5" rx="2" fill="#BDE0FE" stroke="#4A3B52" stroke-width="2.5"/>
-                    <path d="M31,43 L36,46 M49,43 L44,46" stroke="#4A3B52" stroke-width="2.2" stroke-linecap="round"/>
-                    <circle cx="34" cy="48" r="1.8" fill="#4A3B52"/>
-                    <circle cx="46" cy="48" r="1.8" fill="#4A3B52"/>
-                    <path d="M38,52 Q40,49 42,52" fill="none" stroke="#4A3B52" stroke-width="2" stroke-linecap="round"/>
-                </svg>`;
+                return '<svg viewBox="0 0 80 80" class="w-16 h-16 mb-1">' +
+                    '<line x1="48" y1="12" x2="66" y2="34" stroke="#A0522D" stroke-width="3.5" stroke-linecap="round"/>' +
+                    '<line x1="54" y1="10" x2="70" y2="32" stroke="#A0522D" stroke-width="3.5" stroke-linecap="round"/>' +
+                    '<path d="M16,36 Q40,26 64,36" fill="#FDFFB6" stroke="#4A3B52" stroke-width="3"/>' +
+                    '<path d="M14,36 L66,36 A26,24 0 0,1 14,36 Z" fill="#BDE0FE" stroke="#4A3B52" stroke-width="3"/>' +
+                    '<rect x="30" y="57" width="20" height="5" rx="2" fill="#BDE0FE" stroke="#4A3B52" stroke-width="2.5"/>' +
+                    '<path d="M31,43 L36,46 M49,43 L44,46" stroke="#4A3B52" stroke-width="2.2" stroke-linecap="round"/>' +
+                    '<circle cx="34" cy="48" r="1.8" fill="#4A3B52"/>' +
+                    '<circle cx="46" cy="48" r="1.8" fill="#4A3B52"/>' +
+                    '<path d="M38,52 Q40,49 42,52" fill="none" stroke="#4A3B52" stroke-width="2" stroke-linecap="round"/>' +
+                    '</svg>';
             }
         }
 
-        function renderCards() {
+        function renderCards(withDealAnimation) {
             cardsGrid.innerHTML = '';
             const shuffled = JSON.parse(JSON.stringify(foodList)).sort(() => Math.random() - 0.5);
             currentCardDeck = [];
@@ -1117,27 +1113,45 @@
                 currentCardDeck.push(shuffled[i % shuffled.length]);
             }
 
+            // 計算每張卡牌從牌堆中央飛出的相對偏移量
+            const dealOffsets = [
+                { dx: '110px', dy: '95px' },
+                { dx: '0px',   dy: '95px' },
+                { dx: '-110px', dy: '95px' },
+                { dx: '110px', dy: '-95px' },
+                { dx: '0px',   dy: '-95px' },
+                { dx: '-110px', dy: '-95px' }
+            ];
+
             currentCardDeck.forEach((food, idx) => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'flip-card h-44 cursor-pointer perspective-1000 select-none';
-                cardEl.innerHTML = `
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front bg-[#FFC8DD] p-2.5 flex flex-col items-center justify-center hover:brightness-105 transition">
-                            <div class="w-full h-full rounded-xl border-2 border-[#4A3B52] flex flex-col items-center justify-center p-2 bg-[#FFF0F6]/70">
-                                ${getCuteCardIllustrationSVG(idx)}
-                                <span class="font-extrabold text-xs text-[#4A3B52]">幸運卡 #${idx + 1}</span>
-                                <span class="text-[11px] font-bold text-[#6D597A]">點擊翻牌！</span>
-                            </div>
-                        </div>
-                        <div class="flip-card-back bg-[#FFF9F5] p-3 flex flex-col items-center justify-center">
-                            <div class="text-3xl mb-1">${food.icon || '🍱'}</div>
-                            <div class="font-extrabold text-base text-[#4A3B52] line-clamp-1">${food.name}</div>
-                            <div class="mt-1 px-3 py-0.5 rounded-full bg-[#FDFFB6] border-2 border-[#4A3B52] font-extrabold text-xs">
-                                NT$ ${food.price}
-                            </div>
-                        </div>
-                    </div>
-                `;
+
+                if (withDealAnimation) {
+                    const offset = dealOffsets[idx] || { dx: '0px', dy: '-80px' };
+                    cardEl.style.setProperty('--dx', offset.dx);
+                    cardEl.style.setProperty('--dy', offset.dy);
+                    cardEl.style.animationDelay = (idx * 75) + 'ms';
+                    cardEl.classList.add('card-dealing');
+                    playCardDealSound(idx);
+                }
+
+                cardEl.innerHTML = '<div class="flip-card-inner">' +
+                    '<div class="flip-card-front bg-[#FFC8DD] p-2.5 flex flex-col items-center justify-center hover:brightness-105 transition">' +
+                    '<div class="w-full h-full rounded-xl border-2 border-[#4A3B52] flex flex-col items-center justify-center p-2 bg-[#FFF0F6]/70">' +
+                    getCuteCardIllustrationSVG(idx) +
+                    '<span class="font-extrabold text-xs text-[#4A3B52]">幸運卡 #' + (idx + 1) + '</span>' +
+                    '<span class="text-[11px] font-bold text-[#6D597A]">點擊翻牌！</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="flip-card-back bg-[#FFF9F5] p-3 flex flex-col items-center justify-center">' +
+                    '<div class="text-3xl mb-1">' + (food.icon || '🍱') + '</div>' +
+                    '<div class="font-extrabold text-base text-[#4A3B52] line-clamp-1">' + food.name + '</div>' +
+                    '<div class="mt-1 px-3 py-0.5 rounded-full bg-[#FDFFB6] border-2 border-[#4A3B52] font-extrabold text-xs">' +
+                    'NT$ ' + food.price +
+                    '</div>' +
+                    '</div>' +
+                    '</div>';
 
                 cardEl.addEventListener('click', () => {
                     if (walletBalance === null || isSpinning || isBroken) return;
@@ -1162,19 +1176,60 @@
             });
         }
 
-        shuffleCardsBtn.addEventListener('click', () => {
+        function shuffleAndDealCards() {
             if (isBroken || isSpinning) return;
-            playPopSound(480, 0.08);
-            renderCards();
+            isSpinning = true;
+            shuffleCardsBtn.disabled = true;
+
+            const shuffleSpan = shuffleCardsBtn.querySelector('span');
+            if (shuffleSpan) shuffleSpan.textContent = '洗牌發牌中...';
+
+            const existingCards = cardsGrid.querySelectorAll('.flip-card');
+            const gatherOffsets = [
+                { gx: '110px', gy: '95px' },
+                { gx: '0px',   gy: '95px' },
+                { gx: '-110px', gy: '95px' },
+                { gx: '110px', gy: '-95px' },
+                { gx: '0px',   gy: '-95px' },
+                { gx: '-110px', gy: '-95px' }
+            ];
+
+            if (existingCards.length > 0) {
+                playPopSound(360, 0.07);
+                existingCards.forEach((card, idx) => {
+                    const offset = gatherOffsets[idx] || { gx: '0px', gy: '0px' };
+                    card.style.setProperty('--gx', offset.gx);
+                    card.style.setProperty('--gy', offset.gy);
+                    card.classList.remove('card-dealing', 'flipped');
+                    card.classList.add('card-gathering');
+                });
+
+                setTimeout(() => {
+                    renderCards(true);
+                    setTimeout(() => {
+                        isSpinning = false;
+                        shuffleCardsBtn.disabled = false;
+                        if (shuffleSpan) shuffleSpan.textContent = '重新洗牌換一批';
+                    }, 6 * 75 + 420);
+                }, 270);
+            } else {
+                renderCards(true);
+                setTimeout(() => {
+                    isSpinning = false;
+                    shuffleCardsBtn.disabled = false;
+                    if (shuffleSpan) shuffleSpan.textContent = '重新洗牌換一批';
+                }, 6 * 75 + 420);
+            }
+        }
+
+        shuffleCardsBtn.addEventListener('click', () => {
+            shuffleAndDealCards();
         });
 
-        /**************************************************************
-         * 結果判定與崩潰暴走事件
-         **************************************************************/
         function evaluatePickedFood(food, sourceMode) {
             resultEmoji.textContent = food.icon || '🍽️';
-            resultFoodTitle.textContent = `${food.name} (NT$ ${food.price})`;
-            resultBalanceCompare.textContent = `你的錢包餘額：NT$ ${walletBalance} ｜ 飢餓指數：${hungerLevel} 分`;
+            resultFoodTitle.textContent = food.name + ' (NT$ ' + food.price + ')';
+            resultBalanceCompare.textContent = '你的錢包餘額：NT$ ' + walletBalance + ' ｜ 飢餓指數：' + hungerLevel + ' 分';
 
             if (food.price > walletBalance) {
                 playPopSound(220, 0.2);
@@ -1186,7 +1241,7 @@
                 tryAgainPoorBtn.textContent = sourceMode === 'card' ? '再抽一次 😭' : '再轉一次 😭';
             } else {
                 playPopSound(720, 0.15);
-                resultMessageBox.textContent = `「恭喜你可以去吃飯啦！」這道 ${food.name} 你的荷包完全負擔得起！`;
+                resultMessageBox.textContent = '「恭喜你可以去吃飯啦！」這道 ' + food.name + ' 你的荷包完全負擔得起！';
                 resultMessageBox.className = 'p-4 rounded-2xl border-3 border-[#4A3B52] bg-[#CAFFBF] font-extrabold text-base md:text-lg text-[#1B4332] mb-6 leading-relaxed';
                 insufficientActions.classList.add('hidden');
                 sufficientActions.classList.remove('hidden');
@@ -1201,14 +1256,11 @@
             playPopSound(440, 0.06);
             resultModal.classList.add('hidden');
             resultModal.classList.remove('flex');
-            if (currentMode === 'card') {
-                renderCards();
-            }
         });
 
         unsatisfiedBtn.addEventListener('click', () => {
             count++;
-            retryCountDisplay.textContent = `${count} / 2`;
+            retryCountDisplay.textContent = count + ' / 2';
             playPopSound(300, 0.12);
 
             const badge = document.getElementById('willful-badge');
@@ -1217,10 +1269,6 @@
 
             resultModal.classList.add('hidden');
             resultModal.classList.remove('flex');
-
-            if (currentMode === 'card') {
-                renderCards();
-            }
         });
 
         acceptFoodBtn.addEventListener('click', () => {
@@ -1228,7 +1276,7 @@
             resultModal.classList.add('hidden');
             resultModal.classList.remove('flex');
 
-            happyEatSummary.textContent = `太棒了！帶著你的 NT$ ${walletBalance} 預算，快去享用美味的一餐吧！`;
+            happyEatSummary.textContent = '太棒了！帶著你的 NT$ ' + walletBalance + ' 預算，快去享用美味的一餐吧！';
             happyEatModal.classList.remove('hidden');
             happyEatModal.classList.add('flex');
             launchConfetti();
@@ -1279,7 +1327,9 @@
             unlockMobileSpeech();
 
             const allCardEls = cardsGrid.querySelectorAll('.flip-card');
-            allCardEls.forEach(card => card.classList.add('pointer-shaking'));
+            allCardEls.forEach(card => {
+                card.classList.add('pointer-shaking');
+            });
             playPopSound(190, 0.25);
 
             setTimeout(() => {
@@ -1294,9 +1344,9 @@
                     const tx = (i % 2 === 0 ? 1 : -1) * (220 + i * 45);
                     const ty = 380 + i * 30;
                     const rot = (i % 2 === 0 ? 1 : -1) * (360 + i * 80);
-                    card.style.setProperty('--tx', `${tx}px`);
-                    card.style.setProperty('--ty', `${ty}px`);
-                    card.style.setProperty('--rot', `${rot}deg`);
+                    card.style.setProperty('--tx', tx + 'px');
+                    card.style.setProperty('--ty', ty + 'px');
+                    card.style.setProperty('--rot', rot + 'deg');
                     card.classList.add('card-thrown');
                 });
             }, 650);
@@ -1341,10 +1391,58 @@
             speakColdWarningMessage(mode);
         }
 
+        function playSirenAlarmOnly() {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                for (let i = 0; i < 4; i++) {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(i % 2 === 0 ? 780 : 520, now + i * 0.22);
+                    gain.gain.setValueAtTime(0.18, now + i * 0.22);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + (i + 1) * 0.22);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.22);
+                    osc.stop(now + (i + 1) * 0.22);
+                }
+            } catch (e) {}
+        }
+
+        function speakColdWarningMessage(breakdownMode) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume();
+                const text = breakdownMode === 'card'
+                    ? '醒醒吧！你的荷包不允許你這麼任性！因為你太厚臉皮一直重選，卡牌已經被氣到全部丟進垃圾桶了。乖乖接受命運，去吃泡麵或喝西北風吧！'
+                    : '醒醒吧！你的荷包不允許你這麼任性！因為你太厚臉皮一直蟲轉，輪盤指針已經氣到自斷了。乖乖接受命運，去吃泡麵或喝西北風吧！';
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-TW';
+                utterance.pitch = 0.7;
+                utterance.rate = 1.05;
+                utterance.volume = 1;
+
+                const voices = window.speechSynthesis.getVoices();
+                const zhVoice = voices.find(v => v.lang && (v.lang.includes('zh-TW') || v.lang.includes('zh_TW') || v.lang.includes('zh')));
+                if (zhVoice) {
+                    utterance.voice = zhVoice;
+                }
+
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {}
+        }
+
         replayVoiceBtn.addEventListener('click', () => {
             playSirenAlarmOnly();
             speakColdWarningMessage(currentMode);
         });
+
+        document.addEventListener('click', () => {
+            unlockMobileSpeech();
+        }, { once: true });
 
         emergencyResetBtn.addEventListener('click', () => {
             if ('speechSynthesis' in window) {
@@ -1380,9 +1478,6 @@
             switchMode(currentMode);
         });
 
-        /**************************************************************
-         * 自訂菜單 CRUD 與彩帶特效
-         **************************************************************/
         toggleMenuBtn.addEventListener('click', () => {
             customMenuPanel.classList.toggle('hidden');
             if (!customMenuPanel.classList.contains('hidden')) {
@@ -1399,17 +1494,15 @@
             foodList.forEach((item, index) => {
                 const card = document.createElement('div');
                 card.className = 'p-3 rounded-2xl bg-white border-3 border-[#4A3B52] flex items-center justify-between gap-2 shadow-[0_3px_0_#4A3B52]';
-                card.innerHTML = `
-                    <div class="flex items-center gap-2 flex-1 min-w-0">
-                        <span class="text-xl">${item.icon || '🍴'}</span>
-                        <input type="text" value="${item.name}" data-idx="${index}" class="edit-name-input w-full font-extrabold text-sm px-2 py-1 rounded-lg border-2 border-transparent hover:border-[#CDB4DB] focus:border-[#4A3B52] focus:outline-none truncate">
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-extrabold text-[#6D597A]">$</span>
-                        <input type="number" min="1" value="${item.price}" data-idx="${index}" class="edit-price-input w-16 font-extrabold text-sm px-2 py-1 rounded-lg border-2 border-[#CDB4DB] text-right focus:outline-none">
-                        <button type="button" data-idx="${index}" class="delete-food-btn w-8 h-8 rounded-xl bg-[#FFD6E0] hover:bg-[#FFAFCC] border-2 border-[#4A3B52] flex items-center justify-center text-[#D90429] font-extrabold transition" title="刪除此品項">✕</button>
-                    </div>
-                `;
+                card.innerHTML = '<div class="flex items-center gap-2 flex-1 min-w-0">' +
+                    '<span class="text-xl">' + (item.icon || '🍴') + '</span>' +
+                    '<input type="text" value="' + item.name + '" data-idx="' + index + '" class="edit-name-input w-full font-extrabold text-sm px-2 py-1 rounded-lg border-2 border-transparent hover:border-[#CDB4DB] focus:border-[#4A3B52] focus:outline-none truncate">' +
+                    '</div>' +
+                    '<div class="flex items-center gap-1.5">' +
+                    '<span class="text-xs font-extrabold text-[#6D597A]">$</span>' +
+                    '<input type="number" min="1" value="' + item.price + '" data-idx="' + index + '" class="edit-price-input w-16 font-extrabold text-sm px-2 py-1 rounded-lg border-2 border-[#CDB4DB] text-right focus:outline-none">' +
+                    '<button type="button" data-idx="' + index + '" class="delete-food-btn w-8 h-8 rounded-xl bg-[#FFD6E0] hover:bg-[#FFAFCC] border-2 border-[#4A3B52] flex items-center justify-center text-[#D90429] font-extrabold transition" title="刪除此品項">✕</button>' +
+                    '</div>';
                 foodListContainer.appendChild(card);
             });
 
